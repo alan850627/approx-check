@@ -1,7 +1,7 @@
 # Check instruction dependence on memory
 
 
-### Build:
+### Build the pass:
 
     $ mkdir build
     $ cd build
@@ -9,10 +9,10 @@
     $ make
     $ cd ..
 
-### compile
+### compile the test
     $ clang test.c -o test
 
-### to run function
+### to run test
     $ ./test
 
 ### build IR
@@ -21,5 +21,5 @@
 ### look at assembly code
     $ llvm-dis < test.bc | less
 
-### run the simple pass
+### run the pass
     $ opt -load build/ApproxCheck/libApproxCheck.so -ApproxCheck -disable-output test.bc

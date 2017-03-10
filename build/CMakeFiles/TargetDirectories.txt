@@ -1,5 +1,0 @@
-/home/alan/Documents/approx-check/build/CMakeFiles/edit_cache.dir
-/home/alan/Documents/approx-check/build/CMakeFiles/rebuild_cache.dir
-/home/alan/Documents/approx-check/build/ApproxCheck/CMakeFiles/edit_cache.dir
-/home/alan/Documents/approx-check/build/ApproxCheck/CMakeFiles/rebuild_cache.dir
-/home/alan/Documents/approx-check/build/ApproxCheck/CMakeFiles/ApproxCheck.dir

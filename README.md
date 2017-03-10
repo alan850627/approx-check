@@ -18,7 +18,7 @@
 ### build IR
     $ clang -O3 -emit-llvm test.c -c -o test.bc
 
-### look at assembly code
+### look at LLVM IR
     $ llvm-dis < test.bc | less
 
 ### run the pass

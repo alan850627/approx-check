@@ -1,11 +1,125 @@
 #include <stdio.h>
 
-char *store;
-int main(int argc, char *argv[]) {
-  int data = argc + **argv;
-  int i = 0;
-  for (i = 0; i < data; i++) {
-    data *= data;
+typedef struct {
+  int x;
+  int y;
+} Point;
+
+Point pts[10];
+int ints[10];
+
+/* All Adds could be approximated */
+void allApprox1(int arg1, Point p) {
+  arg1 = p.x + p.y;
+  p.x = arg1 + 3;
+  p.y = p.x + 5 * p.y;
+  ints[0] = arg1;
+  pts[0] = p;
+}
+
+void allApprox2(int arg1, Point p) {
+  arg1 = p.x + p.y;
+  p.y = p.x + 5 * p.y;
+  ints[p.x] = arg1;
+  pts[p.x] = p;
+}
+
+void allApprox3(int arg1, Point p) {
+  p.x = arg1 + 3;
+  p.y = p.x + 5 * p.y;
+  ints[arg1] = arg1;
+  pts[arg1] = p;
+}
+
+/* none of the adds could be approximated */
+void noneApprox1(int arg1, Point p) {
+  arg1 += 1;
+  p.x = arg1 + p.y;
+  p.y = arg1 + p.x;
+  ints[arg1] = 10;
+  pts[p.x] = p;
+  pts[p.y] = p;
+}
+
+void noneApprox2(int arg1, Point p) {
+  pts[p.x + p.y] = p;
+}
+
+void whileloopNoneApprox(int arg1, Point p) {
+  while (arg1 > 0) {
+    arg1 += 1;
+    pts[arg1] = p;
   }
-  store[0] = data;
+}
+
+void forloop1(int arg1, Point p) {
+  int i = 0;
+  for (int i = 0; i < 1000; i++) {
+    pts[i] = p;
+  }
+}
+
+void forloop2(int arg1, Point p) {
+  int i = 0;
+  for (int i = 0; i < arg1; i++) {
+    pts[i] = p;
+  }
+}
+
+void forloop3(int arg1, Point p) {
+  int i = 0;
+  for (int i = 0; i < 1000; i++) {
+    ints[i] = p.x + p.y + i;
+  }
+}
+
+void forloop4(int arg1, Point p) {
+  int i = 0;
+  for (int i = 0; i < arg1; i++) {
+    ints[i] = p.x + p.y + i;
+  }
+}
+
+void conditions1(int arg1, Point p){
+  arg1 = arg1 + p.x;
+  if(arg1 > 0) {
+    ints[arg1] = 1;
+  } else {
+    ints[5] = 3;
+  }
+}
+
+void conditions2(int arg1, Point p){
+  arg1 = arg1 + p.x;
+  if(arg1 > 0) {
+    ints[5] = 3;
+  } else {
+    ints[arg1] = 1;
+  }
+}
+
+void conditions3(int arg1, Point p){
+  arg1 = arg1 + p.x;
+  if(arg1 > 0) {
+    ints[arg1] = 3;
+  } else {
+    ints[arg1] = 1;
+  }
+}
+
+void conditions4(int arg1, Point p){
+  if(arg1 > 0) {
+    p.y = arg1 + p.x;
+    pts[arg1] = p;
+  } else {
+    p.x = arg1 + p.y;
+    pts[arg1] = p;
+  }
+}
+
+int main(int argc, char *argv[]) {
+  int x, y, z;
+  scanf("%d", &x);
+  scanf("%d", &y);
+  scanf("%d", &z);
 }

@@ -29,31 +29,40 @@ namespace {
       return false;
     }
 
+    bool vectorContains(std::vector<Instruction*> v, Instruction* instr) {
+      for(std::vector<Instruction*>::iterator it = v.begin(); it < v.end(); it++) {
+        if((*it)->isIdenticalTo(instr)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     // <Opcode <total count, allow approx count>>
     std::map<std::string, std::pair<int, int>> opCounter;
 
     // Function for recursive searches for usechain.
-    void checkUseChain(Instruction* instr, int level, bool skipFirst) {
+    void checkUseChain(Instruction* instr, int level, bool skipFirst, std::vector<Instruction*> history) {
       for (User::op_iterator i = instr -> op_begin(), e = instr -> op_end(); i != e; ++i) {
         Value *v = *i;
-        if (isa<Instruction>(*i)) {
-          if (skipFirst) {
-            skipFirst = false;
-          } else {
-            Instruction *vi = dyn_cast<Instruction>(*i);
-            // Set Metadata
-            LLVMContext& C = vi->getContext();
-            MDNode* N = MDNode::get(C, MDString::get(C, "no"));
-            vi->setMetadata("approx", N);
+        if (skipFirst) {
+          skipFirst = false;
+        } else if (isa<Instruction>(*i)) {
+          Instruction *vi = dyn_cast<Instruction>(*i);
 
-            for (int j = 0; j < level; j++) {
-              errs() << "\t";
-            }
-            errs() << "(" << level << ")" << *vi << "\n";
+          // Set Metadata
+          LLVMContext& C = vi->getContext();
+          MDNode* N = MDNode::get(C, MDString::get(C, "no"));
+          vi->setMetadata("approx", N);
 
-            if (!(vi->mayReadFromMemory())) {
-              ApproxCheck::checkUseChain(vi, level + 1, isSpecialInstruction(vi));
-            }
+          for (int j = 0; j < level; j++) {
+            errs() << "\t";
+          }
+          errs() << "(" << level << ")" << *vi << "\n";
+
+          if (!(vi->mayReadFromMemory()) && !vectorContains(history, vi)) {
+            history.push_back(vi);
+            ApproxCheck::checkUseChain(vi, level + 1, isSpecialInstruction(vi), history);
           }
         }
       }
@@ -75,7 +84,9 @@ namespace {
         // These the operands of these instructions cannot be approximated.
         if (instr->mayReadOrWriteMemory()) {
     			errs() << "(0)" <<*instr << "\n";
-          ApproxCheck::checkUseChain(instr, 1, isSpecialInstruction(instr));
+
+          std::vector<Instruction*> history;
+          ApproxCheck::checkUseChain(instr, 1, isSpecialInstruction(instr), history);
         }
   		}
 

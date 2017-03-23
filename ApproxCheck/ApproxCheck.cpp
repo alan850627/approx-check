@@ -17,7 +17,7 @@ namespace {
 	struct ApproxCheck : public FunctionPass {
 		static char ID;
 		ApproxCheck() : FunctionPass(ID) {}
-		std::vector<Instruction*> allocList;
+		std::vector<Instruction*> allocaList;
 		std::map<std::string, std::pair<int, int>> opCounter; // <Opcode <total count, allow approx count>>
 
 
@@ -37,13 +37,14 @@ namespace {
 
 		/*
 		* A recursive function that looks for use-chains recursively.
-		* boolean skipfirst is used for store instructions, since the first parameter is
-		* just data.
 		* vector history is used for checking of the use-def chain loops forever.
 		*/
 		void checkUseChain(Instruction* instr, int level, std::vector<Instruction*> history) {
-      std::string opcode = instr->getOpcodeName();
-      bool skipFirst = opcode == "store";
+			std::string opcode = instr->getOpcodeName();
+			bool skipFirst = opcode == "store";
+			if (opcode == "alloca" && level > 1) {
+				allocaList.push_back(instr);
+			}
 
 			for (User::op_iterator i = instr->op_begin(), e = instr->op_end(); i != e; ++i) {
 				Value *v = *i;
@@ -58,7 +59,7 @@ namespace {
 					MDNode* N = MDNode::get(C, MDString::get(C, "no"));
 					vi->setMetadata("approx", N);
 
-          // Print
+					// Print
 					for (int j = 0; j < level; j++) { errs() << "\t"; }
 					errs() << "(" << level << ")" << *vi << "\n";
 
@@ -90,6 +91,49 @@ namespace {
 					errs() << "(0)" << *instr << "\n";
 					std::vector<Instruction*> history;
 					ApproxCheck::checkUseChain(instr, 1, history);
+				}
+			}
+			errs() << "\n";
+
+			// Catching "load-store" dependencies
+			for (std::vector<Instruction*>::iterator iter = worklist.begin(); iter != worklist.end(); ++iter) {
+				Instruction* instr = *iter;
+				if (instr->mayReadOrWriteMemory()) {
+
+					// Loop through first level use-def to find if we find the alloca.
+					bool hit = false;
+					for (User::op_iterator i = instr->op_begin(), e = instr->op_end(); i != e; ++i) {
+						Value *v = *i;
+						if (isa<Instruction>(*i)) {
+							Instruction *vi = dyn_cast<Instruction>(*i);
+							if (vectorContains(allocaList, vi)) {
+								hit = true;
+							}
+						}
+					}
+
+					if (hit) {
+						// we found the alloca, we need to look at all the use-def chains thoroughly
+						errs() << "(0)" << *instr << "\n";
+						std::vector<Instruction*> history;
+						for (User::op_iterator i = instr->op_begin(), e = instr->op_end(); i != e; ++i) {
+							Value *v = *i;
+							if (isa<Instruction>(*i)) {
+								Instruction *vi = dyn_cast<Instruction>(*i);
+
+								// Set Metadata
+								LLVMContext& C = vi->getContext();
+								MDNode* N = MDNode::get(C, MDString::get(C, "no"));
+								vi->setMetadata("approx", N);
+
+								// Print
+								errs() << "\t(" << 1 << ")" << *vi << "\n";
+
+								history.push_back(vi);
+								ApproxCheck::checkUseChain(vi, 2, history);
+							}
+						}
+					}
 				}
 			}
 			errs() << "\n";

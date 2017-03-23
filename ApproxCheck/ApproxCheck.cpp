@@ -17,24 +17,9 @@ namespace {
 	struct ApproxCheck : public FunctionPass {
 		static char ID;
 		ApproxCheck() : FunctionPass(ID) {}
-		std::vector<std::string> specialI = { "store" };
 		std::vector<Instruction*> allocList;
 		std::map<std::string, std::pair<int, int>> opCounter; // <Opcode <total count, allow approx count>>
 
-		/*
-		* Checks whether the instruction has the same opcode as the ones listed
-		* in specialI. This method is used for skipping the first parameter when
-		* looking at the use-def chain.
-		*/
-		bool isSpecialInstruction(Instruction* instr) {
-			std::string op = instr->getOpcodeName();
-			for (std::vector<std::string>::iterator it = specialI.begin(); it < specialI.end(); it++) {
-				if (op == *it) {
-					return true;
-				}
-			}
-			return false;
-		}
 
 		/*
 		* Checks whether the instruction vector contains the same instruction as the
@@ -50,14 +35,16 @@ namespace {
 		}
 
 
-
 		/*
 		* A recursive function that looks for use-chains recursively.
 		* boolean skipfirst is used for store instructions, since the first parameter is
 		* just data.
 		* vector history is used for checking of the use-def chain loops forever.
 		*/
-		void checkUseChain(Instruction* instr, int level, bool skipFirst, std::vector<Instruction*> history) {
+		void checkUseChain(Instruction* instr, int level, std::vector<Instruction*> history) {
+      std::string opcode = instr->getOpcodeName();
+      bool skipFirst = opcode == "store";
+
 			for (User::op_iterator i = instr->op_begin(), e = instr->op_end(); i != e; ++i) {
 				Value *v = *i;
 				if (skipFirst) {
@@ -71,12 +58,13 @@ namespace {
 					MDNode* N = MDNode::get(C, MDString::get(C, "no"));
 					vi->setMetadata("approx", N);
 
+          // Print
 					for (int j = 0; j < level; j++) { errs() << "\t"; }
 					errs() << "(" << level << ")" << *vi << "\n";
 
-					if (!(vi->mayReadFromMemory()) && !vectorContains(history, vi)) {
+					if (!vectorContains(history, vi)) {
 						history.push_back(vi);
-						ApproxCheck::checkUseChain(vi, level + 1, isSpecialInstruction(vi), history);
+						ApproxCheck::checkUseChain(vi, level + 1, history);
 					}
 				}
 			}
@@ -101,7 +89,7 @@ namespace {
 				if (instr->mayReadOrWriteMemory()) {
 					errs() << "(0)" << *instr << "\n";
 					std::vector<Instruction*> history;
-					ApproxCheck::checkUseChain(instr, 1, isSpecialInstruction(instr), history);
+					ApproxCheck::checkUseChain(instr, 1, history);
 				}
 			}
 			errs() << "\n";

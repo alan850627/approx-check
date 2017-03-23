@@ -16,7 +16,7 @@
     $ ./test
 
 ### build IR
-    $ clang -O3 -emit-llvm test.c -c -o test.bc
+    $ clang -O0 -emit-llvm test.c -c -o test.bc
 
 ### look at LLVM IR
     $ llvm-dis < test.bc | less

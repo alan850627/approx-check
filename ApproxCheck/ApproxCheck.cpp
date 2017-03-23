@@ -18,6 +18,7 @@ namespace {
 		static char ID;
 		ApproxCheck() : FunctionPass(ID) {}
 		std::vector<std::string> specialI = { "store" };
+		std::vector<Instruction*> allocList;
 		std::map<std::string, std::pair<int, int>> opCounter; // <Opcode <total count, allow approx count>>
 
 		/*
@@ -92,7 +93,7 @@ namespace {
 				worklist.push_back(&*I);
 			}
 
-			// use-def chain for Instruction
+			// Simple use-def chain for Instruction
 			for (std::vector<Instruction*>::iterator iter = worklist.begin(); iter != worklist.end(); ++iter) {
 				Instruction* instr = *iter;
 				// Identify and store instructions that may read or write to memory.

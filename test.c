@@ -117,9 +117,7 @@ void conditions4(int arg1, Point p){
   }
 }
 
+
 int main(int argc, char *argv[]) {
-  int x, y, z;
-  scanf("%d", &x);
-  scanf("%d", &y);
-  scanf("%d", &z);
+
 }

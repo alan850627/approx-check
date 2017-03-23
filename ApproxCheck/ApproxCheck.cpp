@@ -42,7 +42,7 @@ namespace {
 		void checkUseChain(Instruction* instr, int level, std::vector<Instruction*> history) {
 			std::string opcode = instr->getOpcodeName();
 			bool skipFirst = opcode == "store";
-			if (opcode == "alloca" && level > 1) {
+			if (opcode == "alloca" && level > 2 && !vectorContains(allocaList, instr)) {;
 				allocaList.push_back(instr);
 			}
 
@@ -83,6 +83,7 @@ namespace {
 			}
 
 			// Simple use-def chain for Instruction
+      errs() << "===ROUND ONE===\n";
 			for (std::vector<Instruction*>::iterator iter = worklist.begin(); iter != worklist.end(); ++iter) {
 				Instruction* instr = *iter;
 				// Identify and store instructions that may read or write to memory.
@@ -95,47 +96,61 @@ namespace {
 			}
 			errs() << "\n";
 
-			// Catching "load-store" dependencies
-			for (std::vector<Instruction*>::iterator iter = worklist.begin(); iter != worklist.end(); ++iter) {
+      // def-use chain for Instruction
+      errs() << "===ROUND TWO===\n";
+			for(std::vector<Instruction*>::iterator iter = allocaList.begin(); iter != allocaList.end(); ++iter){
 				Instruction* instr = *iter;
-				if (instr->mayReadOrWriteMemory()) {
-
-					// Loop through first level use-def to find if we find the alloca.
-					bool hit = false;
-					for (User::op_iterator i = instr->op_begin(), e = instr->op_end(); i != e; ++i) {
-						Value *v = *i;
-						if (isa<Instruction>(*i)) {
-							Instruction *vi = dyn_cast<Instruction>(*i);
-							if (vectorContains(allocaList, vi)) {
-								hit = true;
-							}
-						}
-					}
-
-					if (hit) {
-						// we found the alloca, we need to look at all the use-def chains thoroughly
-						errs() << "(0)" << *instr << "\n";
-						std::vector<Instruction*> history;
-						for (User::op_iterator i = instr->op_begin(), e = instr->op_end(); i != e; ++i) {
-							Value *v = *i;
-							if (isa<Instruction>(*i)) {
-								Instruction *vi = dyn_cast<Instruction>(*i);
-
-								// Set Metadata
-								LLVMContext& C = vi->getContext();
-								MDNode* N = MDNode::get(C, MDString::get(C, "no"));
-								vi->setMetadata("approx", N);
-
-								// Print
-								errs() << "\t(" << 1 << ")" << *vi << "\n";
-
-								history.push_back(vi);
-								ApproxCheck::checkUseChain(vi, 2, history);
-							}
-						}
-					}
+				errs() << "def: " <<*instr << "\n";
+				for(Value::user_iterator i = instr->user_begin(), ie = instr->user_end(); i!=ie; ++i){
+					Value *v = *i;
+					Instruction *vi = dyn_cast<Instruction>(*i);
+					errs() << "\t\t" << *vi << "\n";
 				}
 			}
+
+
+			// // Catching "load-store" dependencies
+      // errs() << "===ROUND TWO===\n";
+			// for (std::vector<Instruction*>::iterator iter = worklist.begin(); iter != worklist.end(); ++iter) {
+			// 	Instruction* instr = *iter;
+			// 	if (instr->mayReadOrWriteMemory()) {
+      //
+			// 		// Loop through first level use-def to find if we find the alloca.
+			// 		bool hit = false;
+			// 		for (User::op_iterator i = instr->op_begin(), e = instr->op_end(); i != e; ++i) {
+			// 			Value *v = *i;
+			// 			if (isa<Instruction>(*i)) {
+			// 				Instruction *vi = dyn_cast<Instruction>(*i);
+			// 				if (vectorContains(allocaList, vi)) {
+			// 					hit = true;
+			// 				}
+			// 			}
+			// 		}
+      //
+			// 		if (hit) {
+			// 			// we found the alloca, we need to look at all the use-def chains thoroughly
+			// 			errs() << "(0)" << *instr << "\n";
+			// 			std::vector<Instruction*> history;
+			// 			for (User::op_iterator i = instr->op_begin(), e = instr->op_end(); i != e; ++i) {
+			// 				Value *v = *i;
+			// 				if (isa<Instruction>(*i)) {
+			// 					Instruction *vi = dyn_cast<Instruction>(*i);
+      //
+			// 					// Set Metadata
+			// 					LLVMContext& C = vi->getContext();
+			// 					MDNode* N = MDNode::get(C, MDString::get(C, "no"));
+			// 					vi->setMetadata("approx", N);
+      //
+			// 					// Print
+			// 					errs() << "\t(" << 1 << ")" << *vi << "\n";
+      //
+			// 					history.push_back(vi);
+			// 					ApproxCheck::checkUseChain(vi, 2, history);
+			// 				}
+			// 			}
+			// 		}
+			// 	}
+			// }
 			errs() << "\n";
 
 			// Count Opcodes
@@ -171,19 +186,7 @@ namespace {
 			}
 			errs() << "\n";
 			opCounter.clear();
-
-			// def-use chain for Instruction
-			// for(std::vector<Instruction*>::iterator iter = worklist.begin(); iter != worklist.end(); ++iter){
-			// 	Instruction* instr = *iter;
-			// 	errs() << "def: " <<*instr << "\n";
-			// 	for(Value::use_iterator i = instr->use_begin(), ie = instr->use_end(); i!=ie; ++i){
-			// 		Value *v = *i;
-			// 		Instruction *vi = dyn_cast<Instruction>(*i);
-			// 		errs() << "\t\t" << *vi << "\n";
-			// 	}
-			// }
-			//
-			// errs() << "\n\n";
+      allocaList.clear();
 
 			return false;
 		}

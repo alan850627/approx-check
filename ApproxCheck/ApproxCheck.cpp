@@ -19,7 +19,7 @@ namespace {
 		ApproxCheck() : FunctionPass(ID) {}
 		std::vector<Instruction*> worklist;
 		std::map<std::string, std::pair<int, int>> opCounter; // <Opcode <total count, allow approx count>>
-		std::map<Instruction*, bool> allocaList;
+		std::vector<std::pair<Instruction*, bool>> allocaList;
 		
 		/*
 		* Find all alloca opcodes and store those instructions in
@@ -28,7 +28,10 @@ namespace {
 		void findAlloca() {
 			for (std::vector<Instruction*>::iterator iter = worklist.begin(); iter != worklist.end(); iter++) {
 				Instruction* instr = *iter;
-				
+				std::string opcode = vi->getOpcodeName();
+				if(opcode == "alloca") {
+					allocaList.push_back(std::make_pair(vi,false));
+				}
 			}
 		};
 		

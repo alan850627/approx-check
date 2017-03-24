@@ -105,9 +105,14 @@ namespace {
 		*/
 		virtual bool runOnFunction(Function &F) {
 			errs() << "\n===================" << "Function " << F.getName() << "===================\n\n";
-
+			
 			for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
 				worklist.push_back(&*I);
+			}
+			
+			ApproxCheck::findAlloca();
+			for (std::vector<Instruction*>::iterator it = allocaList.begin(); it < allocaList.end(); it++) {
+				errs() << **it << "::" << ApproxCheck::useAsAddress(*it);
 			}
 
 			worklist.clear();

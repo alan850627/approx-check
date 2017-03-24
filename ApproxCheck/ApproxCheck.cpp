@@ -58,6 +58,40 @@ namespace {
 		};
 
 		/*
+		* check if the two instructions have the exact same operands
+		*/
+		bool hasSameOperands(Instruction* exactPt, Instruction* I) {
+			if (exactPt->getOpcode() != I->getOpcode() || exactPt->getNumOperands() != I->getNumOperands() || exactPt->getType() != I->getType()) {
+				return false;
+			}
+			// If both instructions have no operands, they are identical.
+			if (exactPt->getNumOperands() == 0 && I->getNumOperands() == 0) {
+				return true;
+			}
+
+			// We have two instructions of identical opcode and #operands.  Check to see
+			// if all operands are the same.
+			if (!std::equal(exactPt->op_begin(), exactPt->op_end(), I->op_begin())) {
+				return false;
+			}
+			return true;
+		}
+
+		/*
+		* compares the instruction to the list. If the instruction has all the same
+		* operands as any of the exactptlist elements' operands, then return true.
+		*/
+		bool isInExactPtList(Instruction* I) {
+			for (std::vector<Instruction*>::iterator it = exactPtList.begin(); it < exactPtList.end(); it++) {
+				Instruction* exactPt = *it;
+				if (hasSameOperands(exactPt, I)) {
+					return true;
+				}
+			}
+			return false;
+		};
+
+		/*
 		* Returns true if the the use of that instruction is used as data of
 		* a store instruction.
 		*/
@@ -77,7 +111,15 @@ namespace {
 						if (isa<Instruction>(*defI)) {
 							Instruction *parentVi = dyn_cast<Instruction>(*defI);
 							if (parentVi->isIdenticalTo(instr)) {
-								asData = true;
+								Instruction* addressVi = findAddressDependency(vi);
+								// if this addressVi is in the exactPtList, then we're using 
+								// pointer as data. Therefore everything here should not
+								// be approximated. 
+
+								if (isInExactPtList(addressVi)) {
+									asData = true;
+									errs() << "HITT ";
+								}
 							}
 						}
 					}
@@ -102,23 +144,18 @@ namespace {
 				bool foundload = loadFlag;
 				Instruction *vi = dyn_cast<Instruction>(*useI);
 
-				for (int j = 0; j < level; j++) { errs() << "\t"; }
-				errs() << "(" << level << ")" << *vi << "\n";
-
 				std::string opcode = vi->getOpcodeName();
 				if (loadFlag) {
 					if (opcode == "load") {
 						Instruction *parentVi = findAddressDependency(vi);
 						if (parentVi->isIdenticalTo(instr)) {
 							asAddress = true;
-							errs() << "HITT ";
 						}
 					}
 					else if (opcode == "store") {
 						Instruction *parentVi = findAddressDependency(vi);
 						if (parentVi->isIdenticalTo(instr)) {
 							asAddress = true;
-							errs() << "HITT ";
 						}
 					}
 					else if (opcode == "call") {
@@ -127,7 +164,6 @@ namespace {
 								Instruction *parentVi = dyn_cast<Instruction>(*i);
 								if (parentVi->isIdenticalTo(instr)) {
 									asAddress = true;
-									errs() << "HITT ";
 								}
 							}
 						}
@@ -201,11 +237,12 @@ namespace {
 			ApproxCheck::findAlloca();
 			for (std::vector<Instruction*>::iterator it = allocaList.begin(); it < allocaList.end(); it++) {
 				Instruction* inst = *it;
-				errs() << *inst << "::" << useAsAddress(inst, false, 1) << "\n";
+				useAsAddress(inst, false, 1);
 			}
-			for (std::vector<Instruction*>::iterator it = exactPtList.begin(); it < exactPtList.end(); it++) {
+			
+			for (std::vector<Instruction*>::iterator it = allocaList.begin(); it < allocaList.end(); it++) {
 				Instruction* inst = *it;
-				errs() << "exactptlist::" << *inst << "\n";
+				useAsData(inst, false, 1);
 			}
 
 			worklist.clear();

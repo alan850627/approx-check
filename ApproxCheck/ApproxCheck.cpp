@@ -34,6 +34,53 @@ namespace {
 				}
 			}
 		};
+		
+		/*
+		* Returns true if the the use of that instruction is used as data of
+		* a store instruction.
+		*/
+		bool useAsData(Instruction* instr, bool loadFlag, int level) {
+			bool asData = false;
+			for (Value::user_iterator useI = instr->user_begin(); useI != instr->user_end(); useI++) {
+				bool foundload = loadFlag;
+				Instruction *vi = dyn_cast<Instruction>(*useI);
+
+				for (int j = 0; j < level; j++) { errs() << "\t"; }
+				errs() << "(" << level << ")" << *vi << "\n";
+
+				std::string opcode = vi->getOpcodeName();
+				if (loadFlag) {
+					else if (opcode == "store") {
+						User::op_iterator defI = vi->op_begin();
+						if (isa<Instruction>(*defI)) {
+							Instruction *parentVi = dyn_cast<Instruction>(*defI);
+							if (parentVi->isIdenticalTo(instr)) {
+								errs() << "HITT ";
+								asData = true;
+							}
+						}
+					}
+					else if (opcode == "call") {
+						for (User::op_iterator i = vi->op_begin(), e = vi->op_end(); i != e; ++i) {
+							if (isa<Instruction>(*i)) {
+								Instruction *parentVi = dyn_cast<Instruction>(*i);
+								if (parentVi->isIdenticalTo(instr)) {
+									errs() << "HITT ";
+									asData = true;
+								}
+							}
+						}
+					}
+				}
+				else {
+					if (opcode == "load") {
+						foundload = true;
+					}
+				}
+				asData = useAsData(vi, foundload, level + 1) || asData;
+			}
+			return asData;
+		}
 
 		/*
 		* Returns true if the the use of that instruction is used as an address of

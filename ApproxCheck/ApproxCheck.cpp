@@ -19,7 +19,8 @@ namespace {
 		ApproxCheck() : FunctionPass(ID) {}
 		std::vector<Instruction*> worklist;
 		std::map<std::string, std::pair<int, int>> opCounter; // <Opcode <total count, allow approx count>>
-		std::vector<std::pair<Instruction*, bool>> allocaList;
+		std::vector<Instruction*> allocaList;
+		std::vector<Instruction*> exactPtList;
 
 		/*
 		* Find all alloca opcodes and store those instructions in
@@ -30,7 +31,28 @@ namespace {
 				Instruction* instr = *iter;
 				std::string opcode = instr->getOpcodeName();
 				if (opcode == "alloca") {
-					allocaList.push_back(std::make_pair(instr, false));
+					allocaList.push_back(instr);
+				}
+			}
+		};
+		
+		/*
+		* find and returns the instruction in the use-def chain that corresponds to the
+		* address of a load or store instruction.
+		*/
+		Instruction* findAddressDependency(Instruction* vi) {
+			std::string opcode = vi->getOpcodeName();
+			if (opcode == "load") {
+				User::op_iterator defI = vi->op_begin();
+				Instruction *parentVi = dyn_cast<Instruction>(*defI);
+				return parentVi
+			}
+			else if (opcode == "store") {
+				User::op_iterator defI = vi->op_begin();
+				defI++;
+				if (isa<Instruction>(*defI)) {
+					Instruction *parentVi = dyn_cast<Instruction>(*defI);
+					return parentVi
 				}
 			}
 		};
@@ -56,16 +78,6 @@ namespace {
 							Instruction *parentVi = dyn_cast<Instruction>(*defI);
 							if (parentVi->isIdenticalTo(instr)) {
 								asData = true;
-							}
-						}
-					}
-					else if (opcode == "call") {
-						for (User::op_iterator i = vi->op_begin(), e = vi->op_end(); i != e; ++i) {
-							if (isa<Instruction>(*i)) {
-								Instruction *parentVi = dyn_cast<Instruction>(*i);
-								if (parentVi->isIdenticalTo(instr)) {
-									asData = true;
-								}
 							}
 						}
 					}
@@ -96,20 +108,17 @@ namespace {
 				std::string opcode = vi->getOpcodeName();
 				if (loadFlag) {
 					if (opcode == "load") {
-						User::op_iterator defI = vi->op_begin();
-						Instruction *parentVi = dyn_cast<Instruction>(*defI);
+						Instruction *parentVi = findAddressDependency(vi);
 						if (parentVi->isIdenticalTo(instr)) {
 							asAddress = true;
+							errs() << "HITT ";
 						}
 					}
 					else if (opcode == "store") {
-						User::op_iterator defI = vi->op_begin();
-						defI++;
-						if (isa<Instruction>(*defI)) {
-							Instruction *parentVi = dyn_cast<Instruction>(*defI);
-							if (parentVi->isIdenticalTo(instr)) {
-								asAddress = true;
-							}
+						Instruction *parentVi = findAddressDependency(vi);
+						if (parentVi->isIdenticalTo(instr)) {
+							asAddress = true;
+							errs() << "HITT ";
 						}
 					}
 					else if (opcode == "call") {
@@ -118,6 +127,7 @@ namespace {
 								Instruction *parentVi = dyn_cast<Instruction>(*i);
 								if (parentVi->isIdenticalTo(instr)) {
 									asAddress = true;
+									errs() << "HITT ";
 								}
 							}
 						}
@@ -129,6 +139,12 @@ namespace {
 					}
 				}
 				asAddress = useAsAddress(vi, foundload, level + 1) || asAddress;
+				
+				// find the crucial load.
+				if (foundload && !loadflag && opcode == "load") {
+					Instruction* ptI = findAddressDependency(vi);
+					exactPtList.push_back(ptI);
+				}
 			}
 			return asAddress;
 		};
@@ -181,11 +197,15 @@ namespace {
 			}
 
 			ApproxCheck::findAlloca();
-			for (std::vector<std::pair<Instruction*, bool>>::iterator it = allocaList.begin(); it < allocaList.end(); it++) {
-				Instruction* inst = it->first;
-				errs() << *inst << "::" << useAsData(inst, false, 1) << "\n";
+			for (std::vector<Instruction*>::iterator it = allocaList.begin(); it < allocaList.end(); it++) {
+				Instruction* inst = *it;
+				errs() << *inst << "::" << useAsAddress(inst, false, 1) << "\n";
 			}
-
+			for (std::vector<Instruction*>::iterator it = exactPtList.begin(); it < exactPtList.end(); it++) {
+				Instruction* inst = *it;
+				errs() << "exactptlist::" << *inst << "\n";
+			}
+			
 			worklist.clear();
 			opCounter.clear();
 			allocaList.clear();

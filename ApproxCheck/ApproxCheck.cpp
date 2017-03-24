@@ -34,7 +34,7 @@ namespace {
 				}
 			}
 		};
-		
+
 		/*
 		* Returns true if the the use of that instruction is used as data of
 		* a store instruction.
@@ -50,7 +50,7 @@ namespace {
 
 				std::string opcode = vi->getOpcodeName();
 				if (loadFlag) {
-					else if (opcode == "store") {
+					if (opcode == "store") {
 						User::op_iterator defI = vi->op_begin();
 						if (isa<Instruction>(*defI)) {
 							Instruction *parentVi = dyn_cast<Instruction>(*defI);
@@ -188,7 +188,7 @@ namespace {
 			ApproxCheck::findAlloca();
 			for (std::vector<std::pair<Instruction*, bool>>::iterator it = allocaList.begin(); it < allocaList.end(); it++) {
 				Instruction* inst = it->first;
-				errs() << *inst << "::" << useAsAddress(inst, false, 1) << "\n";
+				errs() << *inst << "::" << useAsData(inst, false, 1) << "\n";
 			}
 
 			worklist.clear();

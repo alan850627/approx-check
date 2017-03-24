@@ -171,7 +171,7 @@ namespace {
 							}
 						}
 					}
-					else if (opcode == "br") {						
+					else if (opcode == "br") {
 						User::op_iterator defI = vi->op_begin();
 						Instruction *parentVi = dyn_cast<Instruction>(*defI);
 						if (parentVi->isIdenticalTo(instr)) {

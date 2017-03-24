@@ -28,13 +28,7 @@ namespace {
 		void findAlloca() {
 			for (std::vector<Instruction*>::iterator iter = worklist.begin(); iter != worklist.end(); iter++) {
 				Instruction* instr = *iter;
-				// Identify and store instructions that may read or write to memory.
-				// These the operands of these instructions cannot be approximated.
-				if (instr->mayReadOrWriteMemory()) {
-					errs() << "(0)" << *instr << "\n";
-					std::vector<Instruction*> history;
-					ApproxCheck::checkUseChain(instr, 1, history);
-				}
+				
 			}
 		};
 		

@@ -26,7 +26,16 @@ namespace {
 		* allocaList.
 		*/
 		void findAlloca() {
-			
+			for (std::vector<Instruction*>::iterator iter = worklist.begin(); iter != worklist.end(); iter++) {
+				Instruction* instr = *iter;
+				// Identify and store instructions that may read or write to memory.
+				// These the operands of these instructions cannot be approximated.
+				if (instr->mayReadOrWriteMemory()) {
+					errs() << "(0)" << *instr << "\n";
+					std::vector<Instruction*> history;
+					ApproxCheck::checkUseChain(instr, 1, history);
+				}
+			}
 		};
 		
 		/*
@@ -35,7 +44,7 @@ namespace {
 		*/
 		bool useAsAddress(Instruction* instr) {
 			bool asAddress = false;
-			for (Value::user_iterator useI = instr->user_begin(), useE = instr->user_end(); useI != useE; useI++) {
+			for (Value::user_iterator useI = instr->user_begin(); useI != instr->user_end(); useI++) {
 				Instruction *vi = dyn_cast<Instruction>(*useI);
 				std::string opcode = vi->getOpcodeName();
 				if(opcode == "load") {

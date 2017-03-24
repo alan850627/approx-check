@@ -307,7 +307,8 @@ namespace {
 				Instruction* instr = *iter;
 				// Identify and store instructions that may read or write to memory.
 				// These the operands of these instructions cannot be approximated.
-				if (instr->mayReadOrWriteMemory()) {
+				std::string newopcode = instr->getOpcodeName();
+				if (instr->mayReadOrWriteMemory() || newopcode == "br") {
 					errs() << "(0)" << *instr << "\n";
 					std::vector<Instruction*> history;
 					checkUseChain(instr, 1, history);

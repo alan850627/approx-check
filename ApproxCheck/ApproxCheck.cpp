@@ -39,15 +39,15 @@ namespace {
 		* Returns true if the the use of that instruction is used as an address of
 		* a load or store instruction.
 		*/
-		bool useAsAddress(Instruction* instr, bool loadFlag, level) {
+		bool useAsAddress(Instruction* instr, bool loadFlag, int level) {
 			bool asAddress = false;
 			for (Value::user_iterator useI = instr->user_begin(); useI != instr->user_end(); useI++) {
 				bool foundload = loadFlag;
 				Instruction *vi = dyn_cast<Instruction>(*useI);
-				
+
 				for (int j = 0; j < level; j++) { errs() << "\t"; }
 				errs() << "(" << level << ")" << *vi << "\n";
-				
+
 				std::string opcode = vi->getOpcodeName();
 				if (loadFlag) {
 					if (opcode == "load") {
@@ -69,6 +69,9 @@ namespace {
 							}
 						}
 					}
+          else if (opcode == "call") {
+            
+          }
 				}
 				else {
 					if (opcode == "load") {

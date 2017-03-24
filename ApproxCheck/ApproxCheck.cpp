@@ -29,8 +29,8 @@ namespace {
 			for (std::vector<Instruction*>::iterator iter = worklist.begin(); iter != worklist.end(); iter++) {
 				Instruction* instr = *iter;
 				std::string opcode = instr->getOpcodeName();
-				if(opcode == "alloca") {
-					allocaList.push_back(std::make_pair(instr,false));
+				if (opcode == "alloca") {
+					allocaList.push_back(std::make_pair(instr, false));
 				}
 			}
 		};
@@ -39,18 +39,23 @@ namespace {
 		* Returns true if the the use of that instruction is used as an address of
 		* a load or store instruction.
 		*/
-		bool useAsAddress(Instruction* instr) {
+		bool useAsAddress(Instruction* instr, int level) {
 			bool asAddress = false;
 			for (Value::user_iterator useI = instr->user_begin(); useI != instr->user_end(); useI++) {
 				Instruction *vi = dyn_cast<Instruction>(*useI);
+				
+				for (int j = 0; j < level; j++) { errs() << "\t"; }
+				errs() << "(" << level << ")" << *vi << "\n";
+				
 				std::string opcode = vi->getOpcodeName();
-				if(opcode == "load") {
+				if (opcode == "load") {
 					User::op_iterator defI = vi->op_begin();
 					Instruction *parentVi = dyn_cast<Instruction>(*defI);
 					if (parentVi->isIdenticalTo(instr)) {
 						asAddress = true;
 					}
-				} else if (opcode == "store") {
+				}
+				else if (opcode == "store") {
 					User::op_iterator defI = vi->op_begin();
 					defI++;
 					Instruction *parentVi = dyn_cast<Instruction>(*defI);
@@ -58,7 +63,7 @@ namespace {
 						asAddress = true;
 					}
 				}
-				asAddress = asAddress || useAsAddress(vi);
+				asAddress = asAddress || useAsAddress(vi, level+1);
 			}
 			return asAddress;
 		};
@@ -112,8 +117,8 @@ namespace {
 
 			ApproxCheck::findAlloca();
 			for (std::vector<std::pair<Instruction*, bool>>::iterator it = allocaList.begin(); it < allocaList.end(); it++) {
-        Instruction* inst = it->first;
-        errs() << *inst << "::" << ApproxCheck::useAsAddress(inst) << "\n";
+				Instruction* inst = it->first;
+				errs() << *inst << "::\n" << ApproxCheck::useAsAddress(inst, 1) << "\n";
 			}
 
 			worklist.clear();

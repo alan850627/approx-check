@@ -130,6 +130,9 @@ namespace {
 					}
 				}
 				asData = useAsData(vi, foundload, level + 1) || asData;
+				if (asData) {
+					markInstruction(vi);
+				}
 			}
 			return asData;
 		}
@@ -190,8 +193,10 @@ namespace {
 		/*
 		* mark this instruction is non-approximate-able
 		*/
-		void markInstruction(Instruction* instr) {
-
+		void markInstruction(Instruction* vi) {
+			LLVMContext& C = vi->getContext();
+			MDNode* N = MDNode::get(C, MDString::get(C, "no"));
+			vi->setMetadata("approx", N);
 		};
 
 		/*
@@ -206,6 +211,34 @@ namespace {
 			}
 			return false;
 		};
+		
+		/*
+		* Counts how many instructions are marked.
+		*/
+		void countOpcodes() {
+			for (Function::iterator bb = F.begin(), e = F.end(); bb != e; ++bb) {
+				for (BasicBlock::iterator i = bb->begin(), e = bb->end(); i != e; ++i) {
+					if (opCounter.find(i->getOpcodeName()) == opCounter.end()) {
+						opCounter[i->getOpcodeName()].first = 1;
+						opCounter[i->getOpcodeName()].second = 0;
+					}
+					else {
+						opCounter[i->getOpcodeName()].first += 1;
+					}
+					StringRef s;
+					MDNode* mdn = i->getMetadata("approx");
+					if (mdn) {
+						s = cast<MDString>(mdn->getOperand(0))->getString();
+					}
+					else {
+						s = "";
+					}
+					if (!s.equals("no")) {
+						opCounter[i->getOpcodeName()].second += 1;
+					}
+				}
+			}
+		}
 
 
 		/*
@@ -213,7 +246,28 @@ namespace {
 		* vector history is used for checking if the use-def chain loops forever.
 		*/
 		void checkUseChain(Instruction* instr, int level, std::vector<Instruction*> history) {
+			std::string opcode = instr->getOpcodeName();
+			bool skipFirst = opcode == "store";
 
+			for (User::op_iterator i = instr->op_begin(), e = instr->op_end(); i != e; ++i) {
+				if (skipFirst) {
+					skipFirst = false;
+				}
+				else if (isa<Instruction>(*i)) {
+					Instruction *vi = dyn_cast<Instruction>(*i);					
+					markInstruction(vi);
+					
+					// Print
+					for (int j = 0; j < level; j++) { errs() << "\t"; }
+					errs() << "(" << level << ")" << *vi << "\n";
+					
+					std::string newopcode = vi->getOpcodeName();
+					if (newopcode != "load" && !vectorContains(history, vi)) {
+						history.push_back(vi);
+						ApproxCheck::checkUseChain(vi, level + 1, history);
+					}
+				}
+			}
 		};
 
 		/*
@@ -234,16 +288,42 @@ namespace {
 				worklist.push_back(&*I);
 			}
 
-			ApproxCheck::findAlloca();
+			findAlloca();
 			for (std::vector<Instruction*>::iterator it = allocaList.begin(); it < allocaList.end(); it++) {
 				Instruction* inst = *it;
 				useAsAddress(inst, false, 1);
 			}
 			
+			errs() << "DEF-USE CHAIN\n";
 			for (std::vector<Instruction*>::iterator it = allocaList.begin(); it < allocaList.end(); it++) {
 				Instruction* inst = *it;
+				errs() << "(0)" << *inst << "\n";
 				useAsData(inst, false, 1);
 			}
+			errs() << "\n";
+			
+			errs() << "USE-DEF CHAIN\n";
+			for (std::vector<Instruction*>::iterator iter = worklist.begin(); iter != worklist.end(); ++iter) {
+				Instruction* instr = *iter;
+				// Identify and store instructions that may read or write to memory.
+				// These the operands of these instructions cannot be approximated.
+				if (instr->mayReadOrWriteMemory()) {
+					errs() << "(0)" << *instr << "\n";
+					std::vector<Instruction*> history;
+					checkUseChain(instr, 1, history);
+				}
+			}
+			errs() << "\n";
+			
+			countOpcodes();
+			
+			// Print approx counts
+			std::map <std::string, std::pair<int, int>>::iterator i = opCounter.begin();
+			while (i != opCounter.end()) {
+				errs() << i->first << ": " << i->second.second << "/" << i->second.first << " can be approximated\n";
+				i++;
+			}
+			errs() << "\n";
 
 			worklist.clear();
 			opCounter.clear();

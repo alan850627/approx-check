@@ -117,6 +117,15 @@ void conditions4(int arg1, Point p){
   }
 }
 
+void conditions5(int arg1, Point p){
+  arg1 = arg1 + p.x + p.y;
+  if(arg1 > 21) {
+    ints[0] = 1;
+  } else {
+    ints[1] = 1;
+  }
+}
+
 
 int main(int argc, char *argv[]) {
 

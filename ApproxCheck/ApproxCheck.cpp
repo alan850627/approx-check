@@ -55,7 +55,6 @@ namespace {
 						if (isa<Instruction>(*defI)) {
 							Instruction *parentVi = dyn_cast<Instruction>(*defI);
 							if (parentVi->isIdenticalTo(instr)) {
-								errs() << "HITT ";
 								asData = true;
 							}
 						}
@@ -65,7 +64,6 @@ namespace {
 							if (isa<Instruction>(*i)) {
 								Instruction *parentVi = dyn_cast<Instruction>(*i);
 								if (parentVi->isIdenticalTo(instr)) {
-									errs() << "HITT ";
 									asData = true;
 								}
 							}
@@ -102,7 +100,6 @@ namespace {
 						Instruction *parentVi = dyn_cast<Instruction>(*defI);
 						if (parentVi->isIdenticalTo(instr)) {
 							asAddress = true;
-							errs() << "HITT ";
 						}
 					}
 					else if (opcode == "store") {
@@ -111,7 +108,6 @@ namespace {
 						if (isa<Instruction>(*defI)) {
 							Instruction *parentVi = dyn_cast<Instruction>(*defI);
 							if (parentVi->isIdenticalTo(instr)) {
-								errs() << "HITT ";
 								asAddress = true;
 							}
 						}
@@ -121,7 +117,6 @@ namespace {
 							if (isa<Instruction>(*i)) {
 								Instruction *parentVi = dyn_cast<Instruction>(*i);
 								if (parentVi->isIdenticalTo(instr)) {
-									errs() << "HITT ";
 									asAddress = true;
 								}
 							}

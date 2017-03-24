@@ -20,7 +20,7 @@ namespace {
 		std::vector<Instruction*> worklist;
 		std::map<std::string, std::pair<int, int>> opCounter; // <Opcode <total count, allow approx count>>
 		std::vector<std::pair<Instruction*, bool>> allocaList;
-		
+
 		/*
 		* Find all alloca opcodes and store those instructions in
 		* allocaList.
@@ -28,13 +28,13 @@ namespace {
 		void findAlloca() {
 			for (std::vector<Instruction*>::iterator iter = worklist.begin(); iter != worklist.end(); iter++) {
 				Instruction* instr = *iter;
-				std::string opcode = vi->getOpcodeName();
+				std::string opcode = instr->getOpcodeName();
 				if(opcode == "alloca") {
-					allocaList.push_back(std::make_pair(vi,false));
+					allocaList.push_back(std::make_pair(instr,false));
 				}
 			}
 		};
-		
+
 		/*
 		* Returns true if the the use of that instruction is used as an address of
 		* a load or store instruction.
@@ -62,12 +62,12 @@ namespace {
 			}
 			return asAddress;
 		};
-		
-		/* 
+
+		/*
 		* mark this instruction is non-approximate-able
 		*/
 		void markInstruction(Instruction* instr) {
-			
+
 		};
 
 		/*
@@ -89,15 +89,15 @@ namespace {
 		* vector history is used for checking if the use-def chain loops forever.
 		*/
 		void checkUseChain(Instruction* instr, int level, std::vector<Instruction*> history) {
-			
+
 		};
-		
+
 		/*
 		* A recursive function that looks for def-use chains.
 		* vector history is used for checking if the use-def chain loops forever
 		*/
 		void checkDefChain(Instruction* instr, int level, std::vector<Instruction*> history) {
-			
+
 		};
 
 		/*

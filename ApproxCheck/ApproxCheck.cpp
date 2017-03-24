@@ -42,6 +42,7 @@ namespace {
 		bool useAsAddress(Instruction* instr, bool loadFlag) {
 			bool asAddress = false;
 			for (Value::user_iterator useI = instr->user_begin(); useI != instr->user_end(); useI++) {
+        bool foundload = loadFlag;
 				Instruction *vi = dyn_cast<Instruction>(*useI);
 				std::string opcode = vi->getOpcodeName();
 				if (loadFlag) {
@@ -50,6 +51,7 @@ namespace {
 						Instruction *parentVi = dyn_cast<Instruction>(*defI);
 						if (parentVi->isIdenticalTo(instr)) {
 							asAddress = true;
+              errs() << *vi;
 						}
 					}
 					else if (opcode == "store") {
@@ -58,16 +60,17 @@ namespace {
 						if (isa<Instruction>(*defI)) {
 							Instruction *parentVi = dyn_cast<Instruction>(*defI);
 							if (parentVi->isIdenticalTo(instr)) {
+                errs() << *vi;
 								asAddress = true;
 							}
 						}
 					}
 				} else {
 					if(opcode == "load") {
-						loadFlag = true;
+						foundload = true;
 					}
-				}				
-				asAddress = useAsAddress(vi, loadFlag) || asAddress;
+				}
+				asAddress = useAsAddress(vi, foundload) || asAddress;
 			}
 			return asAddress;
 		};

@@ -35,7 +35,7 @@ namespace {
 				}
 			}
 		};
-		
+
 		/*
 		* find and returns the instruction in the use-def chain that corresponds to the
 		* address of a load or store instruction.
@@ -45,14 +45,14 @@ namespace {
 			if (opcode == "load") {
 				User::op_iterator defI = vi->op_begin();
 				Instruction *parentVi = dyn_cast<Instruction>(*defI);
-				return parentVi
+				return parentVi;
 			}
 			else if (opcode == "store") {
 				User::op_iterator defI = vi->op_begin();
 				defI++;
 				if (isa<Instruction>(*defI)) {
 					Instruction *parentVi = dyn_cast<Instruction>(*defI);
-					return parentVi
+					return parentVi;
 				}
 			}
 		};
@@ -139,11 +139,13 @@ namespace {
 					}
 				}
 				asAddress = useAsAddress(vi, foundload, level + 1) || asAddress;
-				
+
 				// find the crucial load.
-				if (foundload && !loadflag && opcode == "load") {
+				if (foundload && !loadFlag && opcode == "load" && asAddress) {
 					Instruction* ptI = findAddressDependency(vi);
-					exactPtList.push_back(ptI);
+					if (!vectorContains(exactPtList, ptI)) {
+						exactPtList.push_back(ptI);
+					}
 				}
 			}
 			return asAddress;
@@ -205,11 +207,11 @@ namespace {
 				Instruction* inst = *it;
 				errs() << "exactptlist::" << *inst << "\n";
 			}
-			
+
 			worklist.clear();
 			opCounter.clear();
 			allocaList.clear();
-
+			exactPtList.clear();
 			return false;
 		};
 	};

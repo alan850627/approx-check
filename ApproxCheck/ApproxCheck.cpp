@@ -39,33 +39,35 @@ namespace {
 		* Returns true if the the use of that instruction is used as an address of
 		* a load or store instruction.
 		*/
-		bool useAsAddress(Instruction* instr, int level) {
+		bool useAsAddress(Instruction* instr, bool loadFlag) {
 			bool asAddress = false;
 			for (Value::user_iterator useI = instr->user_begin(); useI != instr->user_end(); useI++) {
 				Instruction *vi = dyn_cast<Instruction>(*useI);
-
-				for (int j = 0; j < level; j++) { errs() << "\t"; }
-				errs() << "(" << level << ")" << *vi << "\n";
-
 				std::string opcode = vi->getOpcodeName();
-				if (opcode == "load") {
-					User::op_iterator defI = vi->op_begin();
-					Instruction *parentVi = dyn_cast<Instruction>(*defI);
-					if (parentVi->isIdenticalTo(instr)) {
-						asAddress = true;
+				if (loadFlag) {
+					if (opcode == "load") {
+						User::op_iterator defI = vi->op_begin();
+						Instruction *parentVi = dyn_cast<Instruction>(*defI);
+						if (parentVi->isIdenticalTo(instr)) {
+							asAddress = true;
+						}
 					}
-				}
-				else if (opcode == "store") {
-					User::op_iterator defI = vi->op_begin();
-					defI++;
-          if(isa<Instruction>(*defI)) {
-            Instruction *parentVi = dyn_cast<Instruction>(*defI);
-  					if (parentVi->isIdenticalTo(instr)) {
-  						asAddress = true;
-  					}
-          }					
-				}
-        bool temp = useAsAddress(vi, level+1);
+					else if (opcode == "store") {
+						User::op_iterator defI = vi->op_begin();
+						defI++;
+						if (isa<Instruction>(*defI)) {
+							Instruction *parentVi = dyn_cast<Instruction>(*defI);
+							if (parentVi->isIdenticalTo(instr)) {
+								asAddress = true;
+							}
+						}
+					}
+				} else {
+					if(opcode == "load") {
+						loadFlag = true;
+					}
+				}				
+				asAddress = useAsAddress(vi, loadFlag) || asAddress;
 			}
 			return asAddress;
 		};
@@ -120,7 +122,7 @@ namespace {
 			ApproxCheck::findAlloca();
 			for (std::vector<std::pair<Instruction*, bool>>::iterator it = allocaList.begin(); it < allocaList.end(); it++) {
 				Instruction* inst = it->first;
-				errs() << *inst << "::\n" << ApproxCheck::useAsAddress(inst, 1) << "\n";
+				errs() << *inst << "::" << useAsAddress(inst, false) << "\n";
 			}
 
 			worklist.clear();

@@ -69,16 +69,24 @@ namespace {
 							}
 						}
 					}
-          else if (opcode == "call") {
-            
-          }
+					else if (opcode == "call") {
+						for (User::op_iterator i = vi->op_begin(), e = vi->op_end(); i != e; ++i) {
+							if (isa<Instruction>(*i)) {
+								Instruction *parentVi = dyn_cast<Instruction>(*i);
+								if (parentVi->isIdenticalTo(instr)) {
+									errs() << "HITT ";
+									asAddress = true;
+								}
+							}
+						}
+					}
 				}
 				else {
 					if (opcode == "load") {
 						foundload = true;
 					}
 				}
-				asAddress = useAsAddress(vi, foundload, level+1) || asAddress;
+				asAddress = useAsAddress(vi, foundload, level + 1) || asAddress;
 			}
 			return asAddress;
 		};

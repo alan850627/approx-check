@@ -112,9 +112,9 @@ namespace {
 							Instruction *parentVi = dyn_cast<Instruction>(*defI);
 							if (parentVi->isIdenticalTo(instr)) {
 								Instruction* addressVi = findAddressDependency(vi);
-								// if this addressVi is in the exactPtList, then we're using 
+								// if this addressVi is in the exactPtList, then we're using
 								// pointer as data. Therefore everything here should not
-								// be approximated. 
+								// be approximated.
 
 								if (isInExactPtList(addressVi)) {
 									asData = true;
@@ -211,11 +211,11 @@ namespace {
 			}
 			return false;
 		};
-		
+
 		/*
-		* Counts how many instructions are marked.
+		* Counts how many instructions are marked in the function F
 		*/
-		void countOpcodes() {
+		void countOpcodes(Function &F) {
 			for (Function::iterator bb = F.begin(), e = F.end(); bb != e; ++bb) {
 				for (BasicBlock::iterator i = bb->begin(), e = bb->end(); i != e; ++i) {
 					if (opCounter.find(i->getOpcodeName()) == opCounter.end()) {
@@ -254,13 +254,13 @@ namespace {
 					skipFirst = false;
 				}
 				else if (isa<Instruction>(*i)) {
-					Instruction *vi = dyn_cast<Instruction>(*i);					
+					Instruction *vi = dyn_cast<Instruction>(*i);
 					markInstruction(vi);
-					
+
 					// Print
 					for (int j = 0; j < level; j++) { errs() << "\t"; }
 					errs() << "(" << level << ")" << *vi << "\n";
-					
+
 					std::string newopcode = vi->getOpcodeName();
 					if (newopcode != "load" && !vectorContains(history, vi)) {
 						history.push_back(vi);
@@ -293,7 +293,7 @@ namespace {
 				Instruction* inst = *it;
 				useAsAddress(inst, false, 1);
 			}
-			
+
 			errs() << "DEF-USE CHAIN\n";
 			for (std::vector<Instruction*>::iterator it = allocaList.begin(); it < allocaList.end(); it++) {
 				Instruction* inst = *it;
@@ -301,7 +301,7 @@ namespace {
 				useAsData(inst, false, 1);
 			}
 			errs() << "\n";
-			
+
 			errs() << "USE-DEF CHAIN\n";
 			for (std::vector<Instruction*>::iterator iter = worklist.begin(); iter != worklist.end(); ++iter) {
 				Instruction* instr = *iter;
@@ -314,9 +314,9 @@ namespace {
 				}
 			}
 			errs() << "\n";
-			
-			countOpcodes();
-			
+
+			countOpcodes(F);
+
 			// Print approx counts
 			std::map <std::string, std::pair<int, int>>::iterator i = opCounter.begin();
 			while (i != opCounter.end()) {

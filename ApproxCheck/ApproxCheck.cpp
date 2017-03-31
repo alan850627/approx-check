@@ -101,9 +101,6 @@ namespace {
 				bool foundload = loadFlag;
 				Instruction *vi = dyn_cast<Instruction>(*useI);
 
-				for (int j = 0; j < level; j++) { errs() << "\t"; }
-				errs() << "(" << level << ")" << *vi << "\n";
-
 				std::string opcode = vi->getOpcodeName();
 				if (loadFlag) {
 					if (opcode == "store") {
@@ -118,7 +115,6 @@ namespace {
 
 								if (isInExactPtList(addressVi)) {
 									asData = true;
-									errs() << "HITT ";
 								}
 							}
 						}
@@ -264,10 +260,6 @@ namespace {
 					Instruction *vi = dyn_cast<Instruction>(*i);
 					markInstruction(vi);
 
-					// Print
-					for (int j = 0; j < level; j++) { errs() << "\t"; }
-					errs() << "(" << level << ")" << *vi << "\n";
-
 					std::string newopcode = vi->getOpcodeName();
 					if (newopcode != "load" && !vectorContains(history, vi)) {
 						history.push_back(vi);
@@ -301,27 +293,21 @@ namespace {
 				useAsAddress(inst, false, 1);
 			}
 
-			errs() << "DEF-USE CHAIN\n";
 			for (std::vector<Instruction*>::iterator it = allocaList.begin(); it < allocaList.end(); it++) {
 				Instruction* inst = *it;
-				errs() << "(0)" << *inst << "\n";
 				useAsData(inst, false, 1);
 			}
-			errs() << "\n";
 
-			errs() << "USE-DEF CHAIN\n";
 			for (std::vector<Instruction*>::iterator iter = worklist.begin(); iter != worklist.end(); ++iter) {
 				Instruction* instr = *iter;
 				// Identify and store instructions that may read or write to memory.
 				// These the operands of these instructions cannot be approximated.
 				std::string newopcode = instr->getOpcodeName();
 				if (instr->mayReadOrWriteMemory() || newopcode == "br") {
-					errs() << "(0)" << *instr << "\n";
 					std::vector<Instruction*> history;
 					checkUseChain(instr, 1, history);
 				}
 			}
-			errs() << "\n";
 
 			countOpcodes(F);
 

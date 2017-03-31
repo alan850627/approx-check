@@ -179,6 +179,20 @@ void extra5(int arg1, int* address) {
   ints[address[1]] = 5;
 }
 
+int a = 0;
+void extra6() {
+  a = a + 10;
+  ints[a] = 123;
+}
+
+
+void extra7() {
+  int a = 2;
+  int b = 3;
+  int c = 4;
+  a = b + c;
+  b = a + 10000;
+}
 
 int main(int argc, char *argv[]) {
 

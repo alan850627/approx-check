@@ -126,6 +126,54 @@ void conditions5(int arg1, Point p){
   }
 }
 
+void conditions6(int arg1, Point p) {
+  int i = 0;
+  for(i = 0; i < arg1; i++) {
+    if(i > 10) {
+      ints[0] = 1;
+    }
+  }
+}
+
+void conditions7(int arg1, Point p){
+  if (p.x > 10) {
+    arg1++;
+    p.y += 2;
+  }
+  if (arg1 > 10) {
+    if (p.y < 1) {
+      ints[3] = 6;
+    }
+  }
+}
+
+void extra1(int arg1, Point p) {
+   int i;
+   for(i = 0; i < arg1; i++) {
+     if (arg1 * 1 > p.x + p.y) {
+       break;
+     }
+   }
+}
+
+void extra2(int arg1, Point p) {
+   int i;
+   for(i = 0; i < arg1; i++) {
+     if (arg1 * 1 > p.x + p.y) {
+       continue;
+     }
+     i *= 2;
+   }
+}
+
+int extra3(int arg1, Point p) {
+  return arg1+p.x+p.y;
+}
+
+int extra4(int arg1, Point p) {
+  return arg1+p.x+ints[1]+p.y;
+}
+
 
 int main(int argc, char *argv[]) {
 

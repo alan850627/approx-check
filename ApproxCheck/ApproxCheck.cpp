@@ -101,6 +101,26 @@ namespace {
 		};
 		
 		/*
+		* check if the two instructions have the exact same operands
+		*/
+		bool hasSameOperands(Instruction* exactPt, Instruction* I) {
+			if (exactPt->getOpcode() != I->getOpcode() || exactPt->getNumOperands() != I->getNumOperands() || exactPt->getType() != I->getType()) {
+				return false;
+			}
+			// If both instructions have no operands, they are identical.
+			if (exactPt->getNumOperands() == 0 && I->getNumOperands() == 0) {
+				return true;
+			}
+
+			// We have two instructions of identical opcode and #operands.  Check to see
+			// if all operands are the same.
+			if (!std::equal(exactPt->op_begin(), exactPt->op_end(), I->op_begin())) {
+				return false;
+			}
+			return true;
+		}
+		
+		/*
 		* compares the instruction to the list. If the instruction has all the same
 		* operands as any of the addrList elements' operands, then return true.
 		*/

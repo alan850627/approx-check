@@ -175,7 +175,7 @@ int extra4(int arg1, Point p) {
 }
 
 void extra5(int arg1, int* address) {
-  address[1] = arg1 + 123;
+  address[1] = address[1] + 123;
   ints[address[1]] = 5;
 }
 
@@ -191,7 +191,7 @@ void extra7() {
   int b = 3;
   int c = 4;
   a = b + c;
-  b = a + 10000;
+  ints[a] = 4;
 }
 
 int main(int argc, char *argv[]) {

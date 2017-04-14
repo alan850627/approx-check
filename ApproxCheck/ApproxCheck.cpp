@@ -51,14 +51,12 @@ namespace {
 			std::string opcode = vi->getOpcodeName();
 			if (opcode == "load") {
 				User::op_iterator defI = vi->op_begin();
-				Instruction *parentVi = dyn_cast<Instruction>(*defI);
 				return *defI;
 
 			}
 			else if (opcode == "store") {
 				User::op_iterator defI = vi->op_begin();
 				defI++;
-				Instruction *parentVi = dyn_cast<Instruction>(*defI);
 				return *defI;
 			}
 		};
@@ -124,7 +122,12 @@ namespace {
 			// We have two instructions of identical opcode and #operands.  Check to see
 			// if all operands are the same.
 			if (!std::equal(exactPt->op_begin(), exactPt->op_end(), I->op_begin())) {
-				return false;
+				for (User::op_iterator i = exactPt->op_begin(), j = I->op_begin(); i != exactPt->op_end() && j != I->op_end(); i++, j++) {
+					if(!hasSameOperands(*i, *j)) {
+						return false;
+					}
+				}
+				return true;
 			}
 			return true;
 		}
@@ -236,6 +239,10 @@ namespace {
 					std::vector<Instruction*> history;
 					checkUseChain(instr, 1, history);
 				}
+			}
+
+			for (std::vector<Value*>::iterator i = addrList.begin(); i < addrList.end(); i++) {
+				errs() << **i << "\n";
 			}
 
 			// Step 3) Find all places where the address is being operated on.

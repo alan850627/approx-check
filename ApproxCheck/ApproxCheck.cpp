@@ -18,7 +18,7 @@ namespace {
 		static char ID;
 		ApproxCheck() : FunctionPass(ID) {}
 		std::vector<Instruction*> worklist;
-		std::vector<Instruction*> addrList;
+		std::vector<Value*> addrList;
 		std::map<std::string, std::pair<int, int>> opCounter; // <Opcode <total count, allow approx count>>
 
 		/*
@@ -47,20 +47,19 @@ namespace {
 		* find and returns the instruction in the use-def chain that corresponds to the
 		* address of a load or store instruction.
 		*/
-		Instruction* findAddressDependency(Instruction* vi) {
+		Value* findAddressDependency(Instruction* vi) {
 			std::string opcode = vi->getOpcodeName();
 			if (opcode == "load") {
 				User::op_iterator defI = vi->op_begin();
 				Instruction *parentVi = dyn_cast<Instruction>(*defI);
-				return parentVi;
+				return *defI;
+
 			}
 			else if (opcode == "store") {
 				User::op_iterator defI = vi->op_begin();
 				defI++;
-				if (isa<Instruction>(*defI)) {
-					Instruction *parentVi = dyn_cast<Instruction>(*defI);
-					return parentVi;
-				}
+				Instruction *parentVi = dyn_cast<Instruction>(*defI);
+				return *defI;
 			}
 		};
 
@@ -91,8 +90,8 @@ namespace {
 
 					if (newopcode == "load") {
 						// Found some "address" stored in memory.
-						Instruction* evalAddrInst = findAddressDependency(vi);
-						if(!vectorContains(addrList, evalAddrInst)) {
+						Value* evalAddrInst = findAddressDependency(vi);
+						if(!isInAddrList(evalAddrInst)) {
 							addrList.push_back(evalAddrInst);
 						}
 					}
@@ -103,7 +102,17 @@ namespace {
 		/*
 		* check if the two instructions have the exact same operands
 		*/
-		bool hasSameOperands(Instruction* exactPt, Instruction* I) {
+		bool hasSameOperands(Value* a, Value* b) {
+			if(a == b) {
+				return true;
+			}
+
+			if (!isa<Instruction>(a) || !isa<Instruction>(b)) {
+				return false;
+			}
+
+			Instruction *exactPt = dyn_cast<Instruction>(a);
+			Instruction *I = dyn_cast<Instruction>(b);
 			if (exactPt->getOpcode() != I->getOpcode() || exactPt->getNumOperands() != I->getNumOperands() || exactPt->getType() != I->getType()) {
 				return false;
 			}
@@ -124,9 +133,9 @@ namespace {
 		* compares the instruction to the list. If the instruction has all the same
 		* operands as any of the addrList elements' operands, then return true.
 		*/
-		bool isInAddrList(Instruction* I) {
-			for (std::vector<Instruction*>::iterator it = addrList.begin(); it < addrList.end(); it++) {
-				Instruction* exactPt = *it;
+		bool isInAddrList(Value* I) {
+			for (std::vector<Value*>::iterator it = addrList.begin(); it < addrList.end(); it++) {
+				Value* exactPt = *it;
 				if (hasSameOperands(exactPt, I)) {
 					return true;
 				}
@@ -138,7 +147,7 @@ namespace {
 		* Returns true if the the use of that instruction is used as data of
 		* a store instruction.
 		*/
-		bool useAsData(Instruction* instr, bool loadFlag, int level) {
+		bool useAsData(Value* instr, bool loadFlag, int level) {
 			bool asData = false;
 			for (Value::user_iterator useI = instr->user_begin(); useI != instr->user_end(); useI++) {
 				bool foundload = loadFlag;
@@ -153,8 +162,8 @@ namespace {
 						User::op_iterator defI = vi->op_begin();
 						if (isa<Instruction>(*defI)) {
 							Instruction *parentVi = dyn_cast<Instruction>(*defI);
-							if (parentVi->isIdenticalTo(instr)) {
-								Instruction* addressVi = findAddressDependency(vi);
+							if (*defI == instr) {
+								Value* addressVi = findAddressDependency(vi);
 								// if this addressVi is in the addrList, then we're using
 								// pointer as data. Therefore everything here should not
 								// be approximated.
@@ -229,16 +238,18 @@ namespace {
 				}
 			}
 
-			// for (std::vector<Instruction*>::iterator i = addrList.begin(); i < addrList.end(); i++) {
-			// 	Instruction* inst = *i;
-			// 	errs() << *inst << "\n";
-			// }
-
 			// Step 3) Find all places where the address is being operated on.
-			for (std::vector<Instruction*>::iterator i = addrList.begin(); i < addrList.end(); i++) {
-				Instruction* inst = *i;
-				// errs() << "(0)" << *inst << "\n";
-				useAsData(inst, false, 1);
+			for (std::vector<Value*>::iterator i = addrList.begin(); i < addrList.end(); i++) {
+				Value* v = *i;
+				useAsData(v, false, 1);
+
+				for(std::vector<Instruction*>::iterator i = worklist.begin(); i != worklist.end(); i++) {
+					Value* instr = *i;
+					if (hasSameOperands(v, instr)) {
+						// errs() << "(0)" << *instr << "\n";
+						useAsData(instr, false, 1);
+					}
+				}
 			}
 
 			countOpcodes(F);

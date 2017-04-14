@@ -170,9 +170,9 @@ int extra3(int arg1, Point p) {
   return arg1+p.x+p.y;
 }
 
-// int extra4(int arg1, Point p) {
-//   return arg1+p.x+ints[1]+p.y;
-// }
+int extra4(int arg1, Point p) {
+  return arg1+p.x+ints[1]+p.y;
+}
 
 void extra5(int arg1, int* address) {
   address[1] = arg1 + 123;

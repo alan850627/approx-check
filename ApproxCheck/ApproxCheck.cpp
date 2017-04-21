@@ -77,8 +77,8 @@ namespace {
 					markInstruction(vi);
 
 					// Print
-					for (int j = 0; j < level; j++) { errs() << "\t"; }
-					errs() << "(" << level << ")" << *vi << "\n";
+					// for (int j = 0; j < level; j++) { errs() << "\t"; }
+					// errs() << "(" << level << ")" << *vi << "\n";
 
 					std::string newopcode = vi->getOpcodeName();
 					if (newopcode != "load" && !vectorContains(history, vi)) {
@@ -150,49 +150,47 @@ namespace {
 			return false;
 		};
 
+		void storeUseDefChain(Instruction* instr, int level) {
+			// for (int j = 0; j < level; j++) { errs() << "\t"; }
+			// errs() << "(" << level << ")" << *instr << "\n";
+
+			for (User::op_iterator i = instr->op_begin(); i != instr->op_end(); i++) {
+				if (isa<Instruction>(*i)) {
+					Instruction *vi = dyn_cast<Instruction>(*i);
+					markInstruction(vi);
+
+					std::string opcode = vi->getOpcodeName();
+					if (opcode != "load") {
+						storeUseDefChain(vi, level - 1);
+					}
+				}
+			}
+		}
+
 		/*
 		* Returns true if the the use of that instruction is used as data of
 		* a store instruction.
 		*/
-		bool useAsData(Value* instr, bool loadFlag, int level) {
-			bool asData = false;
+		void useAsData(Value* instr, int level) {
 			for (Value::user_iterator useI = instr->user_begin(); useI != instr->user_end(); useI++) {
-				bool foundload = loadFlag;
 				Instruction *vi = dyn_cast<Instruction>(*useI);
 
 				// for (int j = 0; j < level; j++) { errs() << "\t"; }
 				// errs() << "(" << level << ")" << *vi << "\n";
 
 				std::string opcode = vi->getOpcodeName();
-				if (loadFlag) {
-					if (opcode == "store") {
-						User::op_iterator defI = vi->op_begin();
-						if (isa<Instruction>(*defI)) {
-							Instruction *parentVi = dyn_cast<Instruction>(*defI);
-							if (*defI == instr) {
-								Value* addressVi = findAddressDependency(vi);
-								// if this addressVi is in the addrList, then we're using
-								// pointer as data. Therefore everything here should not
-								// be approximated.
-
-								if (isInAddrList(addressVi)) {
-									asData = true;
-								}
-							}
-						}
+				if (opcode == "store") {
+					Value* addressVi = findAddressDependency(vi);
+					// if this addressVi is in the addrList, then we're using
+					// pointer as data. Therefore everything here should not
+					// be approximated.
+					if (isInAddrList(addressVi)) {
+						storeUseDefChain(vi, level + 1);
 					}
-				}
-				else {
-					if (opcode == "load") {
-						foundload = true;
-					}
-				}
-				asData = useAsData(vi, foundload, level + 1) || asData;
-				if (asData) {
-					markInstruction(vi);
+				} else {
+					useAsData(*useI, level + 1);
 				}
 			}
-			return asData;
 		}
 
 		/*
@@ -252,7 +250,7 @@ namespace {
 			// Step 3) Find all places where the address is being operated on.
 			for (std::vector<Value*>::iterator i = addrList.begin(); i < addrList.end(); i++) {
 				Value* v = *i;
-				useAsData(v, false, 1);
+				useAsData(v, 1);
 
 				// alloca is a special case. We do not want to let it check against all local variables of the same type.
 				std::string newopcode = "";
@@ -266,7 +264,7 @@ namespace {
 						Value* instr = *i;
 						if (hasSameOperands(v, instr, false)) {
 							// errs() << "(0)" << *instr << "\n";
-							useAsData(instr, false, 1);
+							useAsData(instr, 1);
 						}
 					}
 				}

@@ -100,7 +100,7 @@ namespace {
 		/*
 		* check if the two instructions have the exact same operands
 		*/
-		bool hasSameOperands(Value* a, Value* b) {
+		bool hasSameOperands(Value* a, Value* b, bool deep) {
 			if(a == b) {
 				return true;
 			}
@@ -122,8 +122,12 @@ namespace {
 			// We have two instructions of identical opcode and #operands.  Check to see
 			// if all operands are the same.
 			if (!std::equal(exactPt->op_begin(), exactPt->op_end(), I->op_begin())) {
+				if (!deep) {
+					return false;
+				}
+
 				for (User::op_iterator i = exactPt->op_begin(), j = I->op_begin(); i != exactPt->op_end() && j != I->op_end(); i++, j++) {
-					if(!hasSameOperands(*i, *j)) {
+					if(!hasSameOperands(*i, *j, true)) {
 						return false;
 					}
 				}
@@ -139,7 +143,7 @@ namespace {
 		bool isInAddrList(Value* I) {
 			for (std::vector<Value*>::iterator it = addrList.begin(); it < addrList.end(); it++) {
 				Value* exactPt = *it;
-				if (hasSameOperands(exactPt, I)) {
+				if (hasSameOperands(exactPt, I, true)) {
 					return true;
 				}
 			}
@@ -156,8 +160,8 @@ namespace {
 				bool foundload = loadFlag;
 				Instruction *vi = dyn_cast<Instruction>(*useI);
 
-				// for (int j = 0; j < level; j++) { errs() << "\t"; }
-				// errs() << "(" << level << ")" << *vi << "\n";
+				for (int j = 0; j < level; j++) { errs() << "\t"; }
+				errs() << "(" << level << ")" << *vi << "\n";
 
 				std::string opcode = vi->getOpcodeName();
 				if (loadFlag) {
@@ -241,20 +245,29 @@ namespace {
 				}
 			}
 
-			for (std::vector<Value*>::iterator i = addrList.begin(); i < addrList.end(); i++) {
-				errs() << **i << "\n";
-			}
+			// for (std::vector<Value*>::iterator i = addrList.begin(); i < addrList.end(); i++) {
+			// 	errs() << **i << "\n";
+			// }
 
 			// Step 3) Find all places where the address is being operated on.
 			for (std::vector<Value*>::iterator i = addrList.begin(); i < addrList.end(); i++) {
 				Value* v = *i;
 				useAsData(v, false, 1);
 
-				for(std::vector<Instruction*>::iterator i = worklist.begin(); i != worklist.end(); i++) {
-					Value* instr = *i;
-					if (hasSameOperands(v, instr)) {
-						// errs() << "(0)" << *instr << "\n";
-						useAsData(instr, false, 1);
+				// alloca is a special case. We do not want to let it check against all local variables of the same type.
+				std::string newopcode = "";
+				if (isa<Instruction>(v)) {
+					Instruction *I = dyn_cast<Instruction>(v);
+					newopcode = I->getOpcodeName();
+				}
+
+				if (newopcode != "alloca") {
+					for(std::vector<Instruction*>::iterator i = worklist.begin(); i != worklist.end(); i++) {
+						Value* instr = *i;
+						if (hasSameOperands(v, instr, false)) {
+							errs() << "(0)" << *instr << "\n";
+							useAsData(instr, false, 1);
+						}
 					}
 				}
 			}

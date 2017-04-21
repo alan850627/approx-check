@@ -77,8 +77,8 @@ namespace {
 					markInstruction(vi);
 
 					// Print
-					// for (int j = 0; j < level; j++) { errs() << "\t"; }
-					// errs() << "(" << level << ")" << *vi << "\n";
+					for (int j = 0; j < level; j++) { errs() << "\t"; }
+					errs() << "(" << level << ")" << *vi << "\n";
 
 					std::string newopcode = vi->getOpcodeName();
 					if (newopcode != "load" && !vectorContains(history, vi)) {
@@ -160,8 +160,8 @@ namespace {
 				bool foundload = loadFlag;
 				Instruction *vi = dyn_cast<Instruction>(*useI);
 
-				for (int j = 0; j < level; j++) { errs() << "\t"; }
-				errs() << "(" << level << ")" << *vi << "\n";
+				// for (int j = 0; j < level; j++) { errs() << "\t"; }
+				// errs() << "(" << level << ")" << *vi << "\n";
 
 				std::string opcode = vi->getOpcodeName();
 				if (loadFlag) {
@@ -245,9 +245,9 @@ namespace {
 				}
 			}
 
-			// for (std::vector<Value*>::iterator i = addrList.begin(); i < addrList.end(); i++) {
-			// 	errs() << **i << "\n";
-			// }
+			for (std::vector<Value*>::iterator i = addrList.begin(); i < addrList.end(); i++) {
+				errs() << **i << "\n";
+			}
 
 			// Step 3) Find all places where the address is being operated on.
 			for (std::vector<Value*>::iterator i = addrList.begin(); i < addrList.end(); i++) {
@@ -265,7 +265,7 @@ namespace {
 					for(std::vector<Instruction*>::iterator i = worklist.begin(); i != worklist.end(); i++) {
 						Value* instr = *i;
 						if (hasSameOperands(v, instr, false)) {
-							errs() << "(0)" << *instr << "\n";
+							// errs() << "(0)" << *instr << "\n";
 							useAsData(instr, false, 1);
 						}
 					}

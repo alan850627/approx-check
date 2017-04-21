@@ -194,6 +194,11 @@ void extra7() {
   ints[a] = 4;
 }
 
+void extra8(int* addr, int x) {
+  addr[x+x] = x + 10;
+  ints[addr[x+x]] = 12345;
+}
+
 int main(int argc, char *argv[]) {
 
 }

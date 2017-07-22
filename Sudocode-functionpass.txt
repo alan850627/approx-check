@@ -1,0 +1,37 @@
+Approx Check within the function
+
+(A)
+1. Locate all instructions that have addresses and put them in a list. 
+2. Look at the use-def chain of the addresses.
+3. If see load: go to (B), 
+	otherwise continue: 
+4. Mark the instruction as cannot be approximated and look at the use-def chain of all the operands of this instruction.
+5. Repeat 3) until there are no more defs. 
+6. Go to (C)
+
+
+(B) // The address is stored in memory.
+1. Get the instruction that calculates the address the load instruction is loading from, put this instruction in a list 
+   (This list is a list of where addresses are stored in memory).
+2. Go back to (A.2)
+
+
+(C) // Since now we have a list of where addresses are stored, we need to determine if those addresses are being operated on.
+1. Look for all instructions that have the same operands as those instructions stored in the address list.
+	By looking at the same operands recursively, we can be sure if the instruction we are comparing to calculates to the same address stored in the list.
+2. Look at the def-use chain of these instructions.
+3. If we see a store instruction, go to (D)
+	otherwise continue:
+4. Repeat 2) until there are no more uses.
+5. Now we have marked all instructions that cannot be approximated. 
+
+
+(D) // Check if we're updating the address
+1. Get the instruction that calculates the address of the store instruction that's being storing to.
+2. Compare this instruction with the instructions in the address list made in (B).
+   Note: By comparing, we compare if the operands are the same.
+3. If the instruction is not in the address list, Go to (C.1) and look at next instruction on the list.
+	If the instruction IS in the address list, Continue.
+	that means we're modifying the address, therefore all instructions that tried to modify that address cannot be approximated
+4. From the store instruction, find the use-def chain of the data operand until the load, and mark all those instructions as not approximateable. 
+5. Go back to (C.1)
